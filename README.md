@@ -1,6 +1,6 @@
 # K8s 마이크로서비스 데모
 
-이 프로젝트는 Kubernetes 환경에서 Redis, Kafka, MariaDB를 활용하는 간단한 마이크로서비스 데모입니다.
+이 프로젝트는 Kubernetes 환경에서 Redis와 MariaDB를 활용하는 간단한 마이크로서비스 데모입니다.
 
 ## 프로젝트 구조
 
@@ -13,28 +13,17 @@
 1. MariaDB
    - 메시지 저장 및 조회
    - 시간순 정렬 지원
+   - 페이지네이션 지원
 
 2. Redis
-   - 최신 메시지 저장 및 조회
-   - 캐시로 활용
+   - API 호출 로그 저장
+   - 최근 100개의 로그 유지
 
-3. Kafka
-   - 메시지 발행 및 구독
-   - 비동기 메시지 처리
+## 데이터베이스 설정
 
-## 설치 및 실행
+### MariaDB 설정
 
-### 사전 요구사항
-
-- Rancher Desktop
-- Redis
-- Kafka
-- MariaDB
-
-### 데이터베이스 설정
-
-MariaDB에서 다음 테이블을 생성하세요:
-
+1. **데이터베이스 및 테이블 생성**
 ```sql
 CREATE DATABASE testdb;
 USE testdb;
@@ -45,6 +34,62 @@ CREATE TABLE messages (
     created_at DATETIME
 );
 ```
+
+2. **사용자 생성 및 권한 설정**
+```sql
+CREATE USER 'testuser'@'%' IDENTIFIED BY 'testpassword';
+GRANT ALL PRIVILEGES ON testdb.* TO 'testuser'@'%';
+FLUSH PRIVILEGES;
+```
+
+3. **MariaDB 연결 정보**
+- Host: my-mariadb
+- Database: testdb
+- User: testuser
+- Password: testpassword
+
+### Redis 설정
+
+1. **Redis 연결 정보**
+- Host: my-redis-master
+- Port: 6379
+- Password: {{비밀번호 입력}}
+
+2. **Redis 데이터 구조**
+- Key: api_logs
+- Type: List
+- Format: JSON
+```json
+{
+    "timestamp": "ISO-8601 format",
+    "action": "action_name",
+    "details": "log details"
+}
+```
+
+## 환경 변수 설정
+
+### 백엔드 환경 변수
+```yaml
+- name: MYSQL_HOST
+  value: "my-mariadb"
+- name: MYSQL_USER
+  value: "testuser"
+- name: MYSQL_PASSWORD
+  value: "testpassword"
+- name: REDIS_HOST
+  value: "my-redis-master"
+- name: REDIS_PASSWORD
+  value: "undIJzFiRi"
+```
+
+## 설치 및 실행
+
+### 사전 요구사항
+
+- Rancher Desktop
+- Redis
+- MariaDB
 
 ### 백엔드 실행
 
@@ -66,12 +111,10 @@ npm run serve
 
 ### MariaDB
 - POST /db/message: 메시지 저장
-- GET /db/messages: 모든 메시지 조회
+- GET /db/messages: 모든 메시지 조회 (페이지네이션 지원)
+  - Query Parameters:
+    - offset: 시작 위치 (기본값: 0)
+    - limit: 페이지 크기 (기본값: 20)
 
 ### Redis
-- POST /redis/message: 메시지 저장
-- GET /redis/message: 최신 메시지 조회
-
-### Kafka
-- POST /kafka/message: 메시지 발행
-- GET /kafka/messages: 구독된 메시지 조회 
+- GET /logs/redis: API 호출 로그 조회 

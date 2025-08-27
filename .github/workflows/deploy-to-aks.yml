@@ -1,0 +1,42 @@
+name: Deploy to AKS
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Docker Images"]
+    types:
+      - completed
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set AKS context
+        run: |
+          az aks get-credentials --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} \
+            --name ${{ secrets.AKS_CLUSTER_NAME }} --overwrite-existing
+
+      - name: Deploy to AKS
+        run: |
+          # Update image tags in Kubernetes manifests
+          sed -i "s|image: .*/younyoung-aks-demo-backend.*|image: ${{ secrets.ACR_LOGIN_SERVER }}/younyoung-aks-demo-backend:${{ github.sha }}|g" k8s/backend-deployment.yaml
+          sed -i "s|image: .*/younyoung-aks-demo-frontend.*|image: ${{ secrets.ACR_LOGIN_SERVER }}/younyoung-aks-demo-frontend:${{ github.sha }}|g" k8s/frontend-deployment.yaml
+          
+          # Apply Kubernetes manifests
+          kubectl apply -f k8s/backend-secret.yaml
+          kubectl apply -f k8s/backend-deployment.yaml
+          kubectl apply -f k8s/frontend-deployment.yaml
+          
+          # Wait for deployments to be ready
+          kubectl wait --for=condition=available --timeout=300s deployment/backend-deployment
+          kubectl wait --for=condition=available --timeout=300s deployment/frontend-deployment

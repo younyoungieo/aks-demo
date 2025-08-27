@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
-  namespace: default
+  namespace: younyoung
 spec:
   replicas: 1
   selector:
@@ -13,9 +13,11 @@ spec:
       labels:
         app: frontend
     spec:
+      imagePullSecrets:
+      - name: acr-registry
       containers:
       - name: frontend
-        image: giglepeople/aks-test-app-frontend:latest
+        image: ktech4.azurecr.io/younyoung-aks-demo-frontend:latest
         # imagePullPolicy: Never
         ports:
         - containerPort: 80
@@ -24,7 +26,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: frontend-service
-  namespace: default
+  namespace: younyoung
 spec:
   type: NodePort
   selector:

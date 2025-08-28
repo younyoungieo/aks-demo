@@ -13,6 +13,8 @@ spec:
       labels:
         app: backend
     spec:
+      imagePullSecrets:
+      - name: dockerhub-registry
       containers:
       - name: backend
         image: younyoung/aks-demo-backend:latest
@@ -21,25 +23,40 @@ spec:
         - containerPort: 5000
         env:
         - name: MYSQL_HOST
-          value: "mariadb.default.svc.cluster.local"
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: MYSQL_HOST
         - name: MYSQL_USER
-          value: "testuser"
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: MYSQL_USER
         - name: MYSQL_PASSWORD
           valueFrom:
             secretKeyRef:
               name: backend-secrets
               key: MYSQL_PASSWORD
         - name: REDIS_HOST
-          value: "redis-master.default.svc.cluster.local"
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: REDIS_HOST
         - name: KAFKA_SERVERS
-          value: "kafka.default.svc.cluster.local:9092"
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: KAFKA_SERVERS
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:
               name: backend-secrets
               key: REDIS_PASSWORD
         - name: KAFKA_USERNAME
-          value: "user1"
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: KAFKA_USERNAME
         - name: KAFKA_PASSWORD
           valueFrom:
             secretKeyRef:

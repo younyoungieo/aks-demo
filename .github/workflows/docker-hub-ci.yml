@@ -114,16 +114,4 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy-to-local:
-    name: Deploy to Local Rancher Desktop
-    runs-on: ubuntu-latest
-    needs: [build-and-push-backend, build-and-push-frontend]
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
 
-      - name: Deploy to Local Cluster
-        run: |
-          echo "Deployment completed to Docker Hub"
-          echo "Images are now available for local deployment"

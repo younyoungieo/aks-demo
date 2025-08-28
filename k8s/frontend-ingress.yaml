@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    appgw.ingress.kubernetes.io/ssl-redirect: "false"
+    appgw.ingress.kubernetes.io/use-private-ip: "false"
+  name: frontend-ingress
+  namespace: younyoung
+spec:
+  ingressClassName: webapprouting.kubernetes.azure.com
+  rules:
+  - host: younyoung.x.x.x.x.nip.io  # 실제 IP 주소로 변경 필요
+    http:
+      paths:
+      - backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80
+        path: /
+        pathType: Prefix

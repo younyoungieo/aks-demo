@@ -14,10 +14,10 @@ spec:
         app: frontend
     spec:
       imagePullSecrets:
-      - name: dockerhub-registry
+      - name: acr-registry
       containers:
       - name: frontend
-        image: younyoung/aks-demo-frontend:latest
+        image: ktech4.azurecr.io/younyoung-aks-demo-frontend:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 80

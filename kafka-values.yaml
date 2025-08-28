@@ -673,7 +673,7 @@ defaultInitContainers:
 controller:
   ## @param controller.replicaCount Number of Kafka controller-eligible nodes
   ##
-  replicaCount: 3
+  replicaCount: 1
   ## @param controller.controllerOnly If set to true, controller nodes will be deployed as dedicated controllers, instead of controller+broker processes.
   ##
   controllerOnly: false
@@ -2485,4 +2485,48 @@ provisioning:
   ##         containerPort: 1234
   ##
   initContainers: []
+
+# Kafka Helm Chart Values
+# Bitnami Kafka Configuration
+
+# Controller 설정 (올바른 키)
+controller:
+  replicaCount: 1
+
+# 인증 설정 (단순화)
+auth:
+  clientProtocol: plaintext
+  interBrokerProtocol: plaintext
+  tls: false
+  sasl: false
+
+# 서비스 설정
+service:
+  type: ClusterIP
+
+# 지속성 설정
+persistence:
+  enabled: true
+  size: 1Gi
+
+# 설정
+kafka:
+  # 브로커 설정
+  numPartitions: 1
+  defaultReplicationFactor: 1
+  
+  # 로그 설정
+  logRetentionHours: 24
+  logRetentionBytes: -1
+  
+  # 메모리 설정 (더 작게)
+  heapOpts: "-Xmx256m -Xms256m"
+
+# Zookeeper 설정
+zookeeper:
+  enabled: true
+  replicaCount: 1
+  persistence:
+    enabled: true
+    size: 1Gi
 

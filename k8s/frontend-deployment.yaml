@@ -13,12 +13,10 @@ spec:
       labels:
         app: frontend
     spec:
-      imagePullSecrets:
-      - name: acr-registry
       containers:
       - name: frontend
-        image: ktech4.azurecr.io/younyoung-aks-demo-frontend:latest
-        # imagePullPolicy: Never
+        image: younyoung/aks-demo-frontend:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
 ---

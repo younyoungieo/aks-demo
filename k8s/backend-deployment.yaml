@@ -13,17 +13,15 @@ spec:
       labels:
         app: backend
     spec:
-      imagePullSecrets:
-      - name: acr-registry
       containers:
       - name: backend
-        image: ktech4.azurecr.io/younyoung-aks-demo-backend:latest
-        # imagePullPolicy: Never
+        image: younyoung/aks-demo-backend:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 5000
         env:
         - name: MYSQL_HOST
-          value: "younyoung-mariadb"
+          value: "mariadb.default.svc.cluster.local"
         - name: MYSQL_USER
           value: "testuser"
         - name: MYSQL_PASSWORD
@@ -34,7 +32,7 @@ spec:
         - name: REDIS_HOST
           value: "redis-master.default.svc.cluster.local"
         - name: KAFKA_SERVERS
-          value: "my-kafka:9092"
+          value: "kafka.default.svc.cluster.local:9092"
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:

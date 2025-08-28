@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: younyoung
+data:
+  # 민감하지 않은 설정들만 ConfigMap에 포함
+  
+  # 데이터베이스 연결 설정 (민감하지 않은 정보)
+  MYSQL_HOST: "mariadb.default.svc.cluster.local"
+  MYSQL_USER: "testuser"
+  
+  # Redis 연결 설정 (민감하지 않은 정보)
+  REDIS_HOST: "redis-master.default.svc.cluster.local"
+  
+  # Kafka 연결 설정 (민감하지 않은 정보)
+  KAFKA_SERVERS: "kafka.default.svc.cluster.local:9092"
+  KAFKA_USERNAME: "user1"
+  
+  # 애플리케이션 설정 (민감하지 않은 정보)
+  APP_ENVIRONMENT: "development"
+  API_VERSION: "v1"

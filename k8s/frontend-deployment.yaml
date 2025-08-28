@@ -13,6 +13,8 @@ spec:
       labels:
         app: frontend
     spec:
+      imagePullSecrets:
+      - name: dockerhub-registry
       containers:
       - name: frontend
         image: younyoung/aks-demo-frontend:latest

@@ -10,9 +10,66 @@ from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from threading import Thread
 
+# OpenTelemetry 설정 (기존 Azure AKS 인프라 활용)
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
+from opentelemetry.instrumentation.mysql import MySQLInstrumentor
+from opentelemetry.instrumentation.redis import RedisInstrumentor
+
+# OpenTelemetry 로깅 설정
+from opentelemetry import trace
+from opentelemetry.trace import Status, StatusCode
+
+# OpenTelemetry Logs 설정 (Loki용)
+from opentelemetry import logs
+from opentelemetry.sdk._logs import LoggerProvider
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
+
+# OpenTelemetry 초기화
+def init_telemetry():
+    # Tracer Provider 설정 (Tempo용)
+    trace.set_tracer_provider(TracerProvider())
+    
+    # OTLP HTTP Exporter 설정 (Azure AKS의 기존 Collector로 전송)
+    otlp_exporter = OTLPSpanExporter(
+        endpoint=os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', 'http://tempo-distributor.observability:4318/v1/traces')
+    )
+    
+    # Batch Span Processor 설정
+    span_processor = BatchSpanProcessor(otlp_exporter)
+    trace.get_tracer_provider().add_span_processor(span_processor)
+    
+    # Logger Provider 설정 (Loki용)
+    logs.set_logger_provider(LoggerProvider())
+    
+    # OTLP Log Exporter 설정 (Loki로 전송)
+    log_exporter = OTLPLogExporter(
+        endpoint=os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', 'http://collector.lgtm.20.249.154.255.nip.io/v1/logs')
+    )
+    
+    # Batch Log Record Processor 설정
+    log_processor = BatchLogRecordProcessor(log_exporter)
+    logs.get_logger_provider().add_log_record_processor(log_processor)
+    
+    # Flask 자동계측 (Status 설정 포함)
+    FlaskInstrumentor().instrument()
+    
+    # MySQL 자동계측
+    MySQLInstrumentor().instrument()
+    
+    # Redis 자동계측
+    RedisInstrumentor().instrument()
+
 app = Flask(__name__)
 CORS(app, supports_credentials=True)  # 세션을 위한 credentials 지원
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')  # 세션을 위한 시크릿 키
+
+# OpenTelemetry 초기화
+init_telemetry()
 
 # # 스레드 풀 생성
 # thread_pool = ThreadPoolExecutor(max_workers=5)
@@ -189,12 +246,28 @@ def register():
 # 로그인 엔드포인트
 @app.route('/login', methods=['POST'])
 def login():
+    # OpenTelemetry Logger 설정 (Loki용)
+    logger = logs.get_logger(__name__)
+    
     try:
         data = request.json
         username = data.get('username')
         password = data.get('password')
         
+        # 수동 로그: 로그인 시도 (Loki로 전송)
+        logger.info("로그인 시도", extra={
+            "username": username,
+            "timestamp": datetime.now().isoformat(),
+            "event_type": "login_attempt"
+        })
+        
         if not username or not password:
+            logger.warning("로그인 실패 - 필수 정보 누락", extra={
+                "username": username,
+                "reason": "missing_credentials",
+                "timestamp": datetime.now().isoformat(),
+                "event_type": "login_failed"
+            })
             return jsonify({"status": "error", "message": "사용자명과 비밀번호는 필수입니다"}), 400
         
         db = get_db_connection()
@@ -207,6 +280,14 @@ def login():
         if user and check_password_hash(user['password'], password):
             session['user_id'] = username  # 세션에 사용자 정보 저장
             
+            # 수동 로그: 로그인 성공 (Loki로 전송)
+            logger.info("로그인 성공", extra={
+                "username": username,
+                "user_id": user.get('id'),
+                "timestamp": datetime.now().isoformat(),
+                "event_type": "login_success"
+            })
+            
             # Redis 세션 저장 (선택적)
             try:
                 redis_client = get_redis_connection()
@@ -216,7 +297,20 @@ def login():
                 }
                 redis_client.set(f"session:{username}", json.dumps(session_data))
                 redis_client.expire(f"session:{username}", 3600)
+                
+                # 수동 로그: Redis 세션 저장 성공 (Loki로 전송)
+                logger.info("Redis 세션 저장 성공", extra={
+                    "username": username,
+                    "timestamp": datetime.now().isoformat(),
+                    "event_type": "redis_session_saved"
+                })
             except Exception as redis_error:
+                logger.error("Redis 세션 저장 실패", extra={
+                    "error": str(redis_error),
+                    "username": username,
+                    "timestamp": datetime.now().isoformat(),
+                    "event_type": "redis_session_error"
+                })
                 print(f"Redis session error: {str(redis_error)}")
                 # Redis 오류는 무시하고 계속 진행
             
@@ -226,9 +320,24 @@ def login():
                 "username": username
             })
         
+        # 수동 로그: 로그인 실패 (Loki로 전송)
+        logger.warning("로그인 실패 - 잘못된 인증 정보", extra={
+            "reason": "invalid_credentials",
+            "username": username,
+            "timestamp": datetime.now().isoformat(),
+            "event_type": "login_failed"
+        })
+        
         return jsonify({"status": "error", "message": "잘못된 인증 정보"}), 401
         
     except Exception as e:
+        # 수동 로그: 예외 발생 (Loki로 전송)
+        logger.error("로그인 처리 중 오류", extra={
+            "error": str(e),
+            "username": username if 'username' in locals() else "unknown",
+            "timestamp": datetime.now().isoformat(),
+            "event_type": "login_exception"
+        })
         print(f"Login error: {str(e)}")  # 서버 로그에 에러 출력
         return jsonify({"status": "error", "message": "로그인 처리 중 오류가 발생했습니다"}), 500
 

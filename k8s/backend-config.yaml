@@ -7,14 +7,15 @@ data:
   # Azure AKS 환경에 맞는 설정들
   
   # 데이터베이스 연결 설정 (Azure 환경)
-  MYSQL_HOST: "mariadb.default.svc.cluster.local"
+  MYSQL_HOST: "younyoung-mariadb.younyoung.svc.cluster.local"
   MYSQL_USER: "testuser"
   
   # Redis 연결 설정 (Azure 환경)
   REDIS_HOST: "redis-master.default.svc.cluster.local"
+  REDIS_PASSWORD: "GjA0PHx96N"
   
   # Kafka 연결 설정 (Azure 환경)
-  KAFKA_SERVERS: "hyunjun-kafka.hyunjun.svc.cluster.local:9092"
+  KAFKA_SERVERS: "team-kafka.default.svc.cluster.local:9092"
   KAFKA_USERNAME: "user1"
   
   # 애플리케이션 설정

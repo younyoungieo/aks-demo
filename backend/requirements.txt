@@ -9,5 +9,4 @@ opentelemetry-sdk
 opentelemetry-instrumentation-flask
 opentelemetry-instrumentation-mysql
 opentelemetry-instrumentation-redis
-opentelemetry-exporter-otlp-proto-http
-opentelemetry-sdk-extension-otproto 
+opentelemetry-exporter-otlp-proto-http 

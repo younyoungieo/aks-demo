@@ -67,6 +67,13 @@ spec:
             secretKeyRef:
               name: backend-secrets
               key: FLASK_SECRET_KEY
+        # OpenTelemetry 환경변수 추가
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://collector.lgtm.20.249.154.255.nip.io/v1/traces"
+        - name: OTEL_SERVICE_NAME
+          value: "younyoung"
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: "service.name=younyoung"
 ---
 apiVersion: v1
 kind: Service
